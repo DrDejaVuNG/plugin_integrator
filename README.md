@@ -2,6 +2,8 @@
 
 A Flutter application that automates the integration of plugins into Flutter projects.
 
+![Screenshot Placeholder](assets/images/screenshot.png)
+
 ## Description
 
 This project is a Flutter application designed to simplify the process of adding plugins to your Flutter projects. It automates several common steps involved in plugin integration, such as adding dependencies to `pubspec.yaml`, updating platform-specific files (like `AndroidManifest.xml` and `AppDelegate.swift`), and running `flutter pub get`.
@@ -53,11 +55,11 @@ This project is a Flutter application designed to simplify the process of adding
 
 ## Project Structure
 
-* `lib/models`: Contains data models for enums, file modifications, integration steps, log entries, platform configurations, and plugin configurations[cite: 16, 25, 26, 27, 28].
-* `lib/notifiers`: Contains state management using Riverpod for integration status, log entries, selected plugin, and project path[cite: 34, 47, 50, 56].
-* `lib/services`: Contains the core logic for plugin integration and fetching available plugins[cite: 63, 133].
-* `lib/ui`: Contains the user interface widgets for the home view, log console, plugin selection, and project selector[cite: 141, 161, 177, 188].
-* `assets/plugins`: Contains JSON configuration files for available plugins[cite: 1].
+* `lib/models`: Contains data models for enums, file modifications, integration steps, log entries, platform configurations, and plugin configurations.
+* `lib/notifiers`: Contains state management using Riverpod for integration status, log entries, selected plugin, and project path.
+* `lib/services`: Contains the core logic for plugin integration and fetching available plugins.
+* `lib/ui`: Contains the user interface widgets for the home view, log console, plugin selection, and project selector.
+* `assets/plugins`: Contains JSON configuration files for available plugins.
 
 ## Contributing
 
