@@ -57,4 +57,32 @@ class PluginConfig {
               : [],
     );
   }
+
+  PluginConfig copyWith({
+    String? id,
+    String? displayName,
+    String? pluginName,
+    String? description,
+    String? version,
+    List<IntegrationStep>? steps,
+    bool? requiresApiKey,
+    PlatformConfig? androidConfig,
+    PlatformConfig? iosConfig,
+    String? exampleCode,
+    List<String>? dependencies,
+  }) {
+    return PluginConfig(
+      id: id ?? this.id,
+      displayName: displayName ?? this.displayName,
+      pluginName: pluginName ?? this.pluginName,
+      description: description ?? this.description,
+      version: version ?? this.version,
+      steps: steps ?? this.steps,
+      requiresApiKey: requiresApiKey ?? this.requiresApiKey,
+      androidConfig: androidConfig ?? this.androidConfig,
+      iosConfig: iosConfig ?? this.iosConfig,
+      exampleCode: exampleCode ?? this.exampleCode,
+      dependencies: dependencies ?? this.dependencies,
+    );
+  }
 }

@@ -45,6 +45,7 @@ final integrationProvider = Provider((ref) {
     integrationStatusNotifier: integrationStatusNotifier,
     isIntegratingNotifier: isIntegratingNotifier,
     apiKey: ref.watch(apiKeyProvider),
+    skipApiKey: ref.watch(skipApiKeyProvider),
   );
 });
 
@@ -59,6 +60,7 @@ class IntegrationViewModel {
     required this.integrationStatusNotifier,
     required this.isIntegratingNotifier,
     required this.apiKey,
+    required this.skipApiKey,
   });
 
   final Ref ref;
@@ -70,6 +72,7 @@ class IntegrationViewModel {
   final IntegrationStatusNotifier integrationStatusNotifier;
   final IsIntegratingNotifier isIntegratingNotifier;
   final String apiKey;
+  final bool skipApiKey;
 
   bool get canStartIntegration {
     // Check if we have all necessary info to start integration

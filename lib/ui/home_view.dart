@@ -6,7 +6,9 @@ import 'package:plugin_integrator/notifiers/notifiers.dart';
 import 'package:plugin_integrator/services/services.dart';
 import 'package:plugin_integrator/ui/ui.dart';
 
-final availablePluginsProvider = FutureProvider<List<PluginConfig>>((ref) async {
+final availablePluginsProvider = FutureProvider<List<PluginConfig>>((
+  ref,
+) async {
   final pluginService = ref.watch(pluginServiceProvider);
   return await pluginService.getAvailablePlugins();
 });
@@ -47,7 +49,8 @@ class HomeView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final projectPath = ref.watch(projectNotifierProvider);
-    final isValidProject = ref.watch(projectNotifierProvider.notifier).isValidProject;
+    final isValidProject =
+        ref.watch(projectNotifierProvider.notifier).isValidProject;
     final selectedPlugin = ref.watch(pluginNotifierProvider);
     final logs = ref.watch(logNotifierProvider);
     final integrationStatus = ref.watch(integrationStatusProvider);
@@ -71,28 +74,59 @@ class HomeView extends ConsumerWidget {
             pluginsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (err, stack) => Text('Error loading plugins: $err'),
-              data: (plugins) => PluginSelection(
-                plugins: plugins,
-                selectedPlugin: selectedPlugin,
-                onPluginSelected: ref.read(pluginNotifierProvider.notifier).set,
-              ),
+              data:
+                  (plugins) => PluginSelection(
+                    plugins: plugins,
+                    selectedPlugin: selectedPlugin,
+                    onPluginSelected:
+                        ref.read(pluginNotifierProvider.notifier).set,
+                  ),
             ),
             const SizedBox(height: 24),
             if (selectedPlugin?.requiresApiKey == true)
-              TextField(
-                controller: TextEditingController(text: notifier.apiKey),
-                decoration: InputDecoration(
-                  labelText: 'API Key for ${selectedPlugin?.displayName}',
-                  hintText: 'Enter your API key',
-                  border: const OutlineInputBorder(),
+              Visibility(
+                visible: !notifier.skipApiKey, // ask first
+                replacement: Row(
+                  children: [
+                    Text("Do you want to add an API Key?"),
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      onPressed:
+                          () => ref
+                              .read(pluginNotifierProvider.notifier)
+                              .setSkipApiKey(false),
+                      child: Text("Yes"),
+                    ),
+                    const SizedBox(width: 5),
+                    ElevatedButton(
+                      onPressed:
+                          () => ref
+                              .read(pluginNotifierProvider.notifier)
+                              .setSkipApiKey(true),
+                      child: Text("Skip"),
+                    ),
+                  ],
                 ),
-                onChanged: ref.read(pluginNotifierProvider.notifier).setApiKey,
+                child: TextField(
+                  controller:
+                      ref
+                          .read(pluginNotifierProvider.notifier)
+                          .apiKeyTextController,
+                  decoration: InputDecoration(
+                    labelText: 'API Key for ${selectedPlugin?.displayName}',
+                    hintText: 'Enter your API key',
+                    border: const OutlineInputBorder(),
+                  ),
+                  onChanged:
+                      ref.read(pluginNotifierProvider.notifier).setApiKey,
+                ),
               ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
-              onPressed: isIntegrating || !notifier.canStartIntegration
-                  ? null
-                  : () => _startIntegration(ref),
+              onPressed:
+                  isIntegrating || !notifier.canStartIntegration
+                      ? null
+                      : () => _startIntegration(ref),
               icon: const Icon(Icons.integration_instructions),
               label: const Text('Start Integration'),
             ),
@@ -105,9 +139,7 @@ class HomeView extends ConsumerWidget {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            Expanded(
-              child: LogConsole(logs: logs),
-            ),
+            Expanded(child: LogConsole(logs: logs)),
           ],
         ),
       ),
