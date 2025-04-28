@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+/// A widget for selecting a Flutter project directory.
 class ProjectSelector extends StatelessWidget {
   const ProjectSelector({
     super.key,
@@ -8,8 +9,13 @@ class ProjectSelector extends StatelessWidget {
     required this.isValid,
   });
 
+  /// The currently selected project path.
   final String projectPath;
+
+  /// A callback function that is called when the "Browse" button is pressed.
   final VoidCallback onSelectProject;
+
+  /// Indicates whether the selected path is a valid Flutter project.
   final bool isValid;
 
   @override
@@ -51,12 +57,15 @@ class ProjectSelector extends StatelessWidget {
                       ),
                     ),
                     Visibility(
-                      visible: projectPath.isNotEmpty && isValid,
-                      replacement: const Icon(Icons.error, color: Colors.red),
-                      child: const Icon(
-                        Icons.check_circle,
-                        color: Colors.green,
-                      ),
+                      visible: projectPath.isNotEmpty,
+                      replacement: const SizedBox.shrink(),
+                      child:
+                          isValid
+                              ? const Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                              )
+                              : const Icon(Icons.error, color: Colors.red),
                     ),
                   ],
                 ),

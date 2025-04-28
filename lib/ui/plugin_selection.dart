@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/plugin_config.dart';
 
+/// A widget for selecting a plugin from a list using a dropdown.
 class PluginSelection extends StatelessWidget {
   const PluginSelection({
     super.key,
@@ -9,8 +10,15 @@ class PluginSelection extends StatelessWidget {
     required this.onPluginSelected,
   });
 
+  /// The list of available plugin configurations.
   final List<PluginConfig> plugins;
+
+  /// The currently selected plugin configuration.
   final PluginConfig? selectedPlugin;
+
+  /// A callback function that is called when a plugin is selected.
+  ///
+  /// Receives the selected [PluginConfig] or null if no plugin is selected.
   final Function(PluginConfig?) onPluginSelected;
 
   @override

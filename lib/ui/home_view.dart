@@ -6,6 +6,7 @@ import 'package:plugin_integrator/notifiers/notifiers.dart';
 import 'package:plugin_integrator/services/services.dart';
 import 'package:plugin_integrator/ui/ui.dart';
 
+/// FutureProvider to asynchronously load the list of available plugins.
 final availablePluginsProvider = FutureProvider<List<PluginConfig>>((
   ref,
 ) async {
@@ -13,9 +14,14 @@ final availablePluginsProvider = FutureProvider<List<PluginConfig>>((
   return await pluginService.getAvailablePlugins();
 });
 
+/// The main view of the application, displaying controls for project selection,
+/// plugin selection, integration status, and logs.
 class HomeView extends ConsumerWidget {
   const HomeView({super.key});
 
+  /// Opens a directory picker to allow the user to select a Flutter project.
+  ///
+  /// Updates the [projectNotifierProvider] with the selected path.
   Future<void> _selectDirectory(WidgetRef ref) async {
     String? directoryPath = await FilePicker.platform.getDirectoryPath(
       dialogTitle: 'Select Flutter Project',
@@ -26,6 +32,11 @@ class HomeView extends ConsumerWidget {
     }
   }
 
+  /// Starts the plugin integration process.
+  ///
+  /// Checks if a project and plugin are selected before initiating the
+  /// integration via the [integrationProvider]. Logs error messages if
+  /// prerequisites are not met.
   Future<void> _startIntegration(WidgetRef ref) async {
     final notifier = ref.read(integrationProvider);
 
@@ -85,17 +96,17 @@ class HomeView extends ConsumerWidget {
             const SizedBox(height: 24),
             if (selectedPlugin?.requiresApiKey == true)
               Visibility(
-                visible: !notifier.skipApiKey, // ask first
+                visible: !notifier.skipApiKey, // Show input if not skipping
                 replacement: Row(
                   children: [
-                    Text("Do you want to add an API Key?"),
+                    const Text("Do you want to add an API Key?"),
                     const SizedBox(width: 10),
                     ElevatedButton(
                       onPressed:
                           () => ref
                               .read(pluginNotifierProvider.notifier)
                               .setSkipApiKey(false),
-                      child: Text("Yes"),
+                      child: const Text("Yes"),
                     ),
                     const SizedBox(width: 5),
                     ElevatedButton(
@@ -103,7 +114,7 @@ class HomeView extends ConsumerWidget {
                           () => ref
                               .read(pluginNotifierProvider.notifier)
                               .setSkipApiKey(true),
-                      child: Text("Skip"),
+                      child: const Text("Skip"),
                     ),
                   ],
                 ),
@@ -125,7 +136,7 @@ class HomeView extends ConsumerWidget {
             ElevatedButton.icon(
               onPressed:
                   isIntegrating || !notifier.canStartIntegration
-                      ? null
+                      ? null // Disable button if integrating or cannot start
                       : () => _startIntegration(ref),
               icon: const Icon(Icons.integration_instructions),
               label: const Text('Start Integration'),

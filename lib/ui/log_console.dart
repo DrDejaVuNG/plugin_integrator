@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:plugin_integrator/models/models.dart';
 
+/// A widget that displays a console-like view of log entries.
 class LogConsole extends StatelessWidget {
   const LogConsole({super.key, required this.logs});
 
+  /// The list of log entries to display.
   final List<LogEntry> logs;
 
   @override
@@ -29,16 +31,13 @@ class LogConsole extends StatelessWidget {
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(
                     width: 80,
                     child: Text(
                       _formatTime(log.timestamp),
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 12,
-                      ),
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                   ),
                   _buildLogIcon(log.level),
@@ -66,22 +65,24 @@ class LogConsole extends StatelessWidget {
     );
   }
 
+  /// Formats the timestamp into a HH:mm:ss string.
   String _formatTime(DateTime time) {
     return '${time.hour.toString().padLeft(2, '0')}:'
         '${time.minute.toString().padLeft(2, '0')}:'
         '${time.second.toString().padLeft(2, '0')}';
   }
 
+  /// Builds an icon widget based on the log level.
   Widget _buildLogIcon(LogLevel level) {
     if (level == LogLevel.success) {
-      return Icon(Icons.check_circle, color: Colors.green, size: 16);
+      return const Icon(Icons.check_circle, color: Colors.green, size: 16);
     }
     if (level == LogLevel.warning) {
-      return Icon(Icons.warning, color: Colors.orange, size: 16);
+      return const Icon(Icons.warning, color: Colors.orange, size: 16);
     }
     if (level == LogLevel.error) {
-      return Icon(Icons.error, color: Colors.red, size: 16);
+      return Icon(Icons.error, color: Colors.red.shade300, size: 16);
     }
-    return Icon(Icons.info, color: Colors.blue, size: 16);
+    return const Icon(Icons.info, color: Colors.blue, size: 16);
   }
 }

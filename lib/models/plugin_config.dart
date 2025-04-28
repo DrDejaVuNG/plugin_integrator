@@ -1,5 +1,6 @@
 import 'package:plugin_integrator/models/models.dart';
 
+/// Represents the configuration for a single plugin.
 class PluginConfig {
   PluginConfig({
     required this.id,
@@ -15,18 +16,40 @@ class PluginConfig {
     this.dependencies = const [],
   });
 
+  /// A unique identifier for the plugin.
   final String id;
+
+  /// The human-readable name of the plugin.
   final String displayName;
+
+  /// The package name of the plugin on pub.dev.
   final String pluginName;
+
+  /// A brief description of the plugin.
   final String description;
+
+  /// The recommended version of the plugin.
   final String version;
+
+  /// A list of integration steps required for this plugin.
   final List<IntegrationStep> steps;
+
+  /// Indicates if the plugin requires an API key.
   final bool requiresApiKey;
+
+  /// Platform-specific configuration for Android.
   final PlatformConfig? androidConfig;
+
+  /// Platform-specific configuration for iOS.
   final PlatformConfig? iosConfig;
+
+  /// Example code demonstrating how to use the plugin.
   final String? exampleCode;
+
+  /// Additional dependencies required by this plugin.
   final List<String> dependencies;
 
+  /// Creates a [PluginConfig] instance from a JSON map.
   factory PluginConfig.fromJson(Map<String, dynamic> json) {
     return PluginConfig(
       id: json['id'],
@@ -58,6 +81,7 @@ class PluginConfig {
     );
   }
 
+  /// Creates a copy of this [PluginConfig] with optional new values.
   PluginConfig copyWith({
     String? id,
     String? displayName,

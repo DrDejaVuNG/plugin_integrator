@@ -1,4 +1,4 @@
-# Plugin Integrator
+# Flutter Plugin Integrator
 
 A Flutter application that automates the integration of plugins into Flutter projects.
 
