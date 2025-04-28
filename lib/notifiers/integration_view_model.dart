@@ -125,6 +125,7 @@ class IntegrationViewModel {
         pluginConfig: selectedPlugin!,
         projectPath: projectPath,
         apiKey: apiKey,
+        skipApiKey: skipApiKey,
         logger: logNotifier.log,
       );
 

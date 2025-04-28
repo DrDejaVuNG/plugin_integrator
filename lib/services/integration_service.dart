@@ -13,10 +13,17 @@ class IntegrationService {
     required PluginConfig pluginConfig,
     required String projectPath,
     required String apiKey,
+    required bool skipApiKey,
     required LogCallback logger,
   }) async {
     // Process each integration step
     for (final step in pluginConfig.steps) {
+      if (step.params['content'].contains('{API_KEY}') && skipApiKey) {
+        continue;
+      }
+      if (step.params['initCode'].contains('{API_KEY}') && skipApiKey) {
+        continue;
+      }
       logger('Processing step: ${step.description}', LogLevel.info);
 
       switch (step.type) {
