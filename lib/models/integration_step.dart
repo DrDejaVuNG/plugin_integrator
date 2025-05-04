@@ -17,13 +17,25 @@ class IntegrationStep {
   /// A map of parameters required for the step.
   final Map<String, dynamic> params;
 
+  static String _getContent(dynamic content) {
+    if (content is List) {
+      // Join list of strings into a single string for content parameter
+      return List<String>.from(content).join('\n');
+    }
+    return content.toString();
+  }
+
+  FileType get getFileType {
+    return FileType.values.firstWhere(
+      (e) => e.toString() == 'FileType.${params['file']}',
+    );
+  }
+
   /// Creates an [IntegrationStep] instance from a JSON map.
   factory IntegrationStep.fromJson(Map<String, dynamic> json) {
     var content = json['params']['content'];
     if (content != null) {
-      // Join list of strings into a single string for content parameter
-      content = List<String>.from(content);
-      json['params']['content'] = content.join("\n");
+      json['params']['content'] = _getContent(content);
     }
     return IntegrationStep(
       type: StepType.values.firstWhere(

@@ -18,10 +18,9 @@ class IntegrationService {
   }) async {
     // Process each integration step
     for (final step in pluginConfig.steps) {
-      if (step.params['content'].contains('{API_KEY}') && skipApiKey) {
-        continue;
-      }
-      if (step.params['initCode'].contains('{API_KEY}') && skipApiKey) {
+      if (step.params.containsKey('content') &&
+          step.params['content'].contains('{API_KEY}') &&
+          skipApiKey) {
         continue;
       }
       logger('Processing step: ${step.description}', LogLevel.info);
@@ -37,38 +36,36 @@ class IntegrationService {
           );
           break;
 
-        case StepType.updateManifest:
-          await _updateAndroidManifest(
+        case StepType.updateFile:
+          await _updateFile(
             projectPath: projectPath,
+            file: step.getFileType,
             content: step.params['content'].replaceAll('{API_KEY}', apiKey),
             insertBefore: step.params['insertBefore'],
+            insertAfter: step.params['insertAfter'],
             logger: logger,
           );
           break;
 
-        case StepType.updateInfoPlist:
-          await _updateInfoPlist(
+        case StepType.replacePattern:
+          await _replacePattern(
             projectPath: projectPath,
-            content: step.params['content'].replaceAll('{API_KEY}', apiKey),
-            insertBefore: step.params['insertBefore'],
-            logger: logger,
-          );
-          break;
-
-        case StepType.updateAppDelegate:
-          await _updateAppDelegate(
-            projectPath: projectPath,
-            importStatements: step.params['importStatements'],
-            initCode: step.params['initCode'].replaceAll('{API_KEY}', apiKey),
-            logger: logger,
-          );
-          break;
-
-        case StepType.updateBuildGradle:
-          await _updateBuildGradle(
-            projectPath: projectPath,
+            file: step.getFileType,
             pattern: step.params['pattern'],
             replacement: step.params['replacement'],
+            logger: logger,
+          );
+          break;
+
+        case StepType.replaceOrUpdate:
+          await _replaceOrUpdate(
+            projectPath: projectPath,
+            file: step.getFileType,
+            pattern: step.params['pattern'],
+            content: step.params['content'],
+            begin: step.params['begin'],
+            end: step.params['end'],
+            insertBefore: step.params['insertBefore'],
             logger: logger,
           );
           break;
@@ -93,18 +90,50 @@ class IntegrationService {
       }
     }
 
-    // Add example code if available
-    if (pluginConfig.exampleCode != null &&
-        pluginConfig.exampleCode!.isNotEmpty) {
-      await _addExampleCode(
-        projectPath: projectPath,
-        exampleCode: pluginConfig.exampleCode!,
-        logger: logger,
-      );
-    }
-
     // Run flutter pub get after all steps
-    await _runFlutterPubGet(projectPath, logger);
+    await _runCommand(
+      projectPath: projectPath,
+      command: 'flutter',
+      args: ['pub', 'get'],
+      logger: logger,
+    );
+  }
+
+  String _getPath({required String projectPath, required FileType file}) {
+    return switch (file) {
+      FileType.androidManifest => path.join(
+        projectPath,
+        'android',
+        'app',
+        'src',
+        'main',
+        'AndroidManifest.xml',
+      ),
+      FileType.appDelegate => path.join(
+        projectPath,
+        'ios',
+        'Runner',
+        'AppDelegate.swift',
+      ),
+      FileType.buildGradle => path.join(
+        projectPath,
+        'android',
+        'app',
+        'build.gradle',
+      ),
+      FileType.buildGradleKts => path.join(
+        projectPath,
+        'android',
+        'app',
+        'build.gradle.kts',
+      ),
+      FileType.infoPlist => path.join(
+        projectPath,
+        'ios',
+        'Runner',
+        'Info.plist',
+      ),
+    };
   }
 
   /// Adds a dependency to the `pubspec.yaml` file.
@@ -114,7 +143,7 @@ class IntegrationService {
   /// [version]: The version constraint for the dependency.
   /// [isDev]: Whether it's a dev dependency.
   /// [logger]: A callback function to log messages.
-  Future<void> _addDependency({
+  Future<bool> _addDependency({
     required String projectPath,
     required String dependency,
     required String version,
@@ -147,7 +176,7 @@ class IntegrationService {
         YamlMap dependencies = loadYaml(pubspecContent)[section];
         if (dependencies.containsKey(dependency)) {
           logger('$dependency already exists in pubspec.yaml', LogLevel.info);
-          return; // Dependency already exists, no need to add again
+          return true; // Dependency already exists, no need to add again
         }
       } catch (e) {
         // Section might exist but be empty
@@ -165,216 +194,172 @@ class IntegrationService {
         'Added $dependency:$version to $section in pubspec.yaml',
         LogLevel.success,
       );
+      return true;
     } catch (e) {
       logger('Failed to add dependency: $e', LogLevel.error);
       rethrow;
     }
   }
 
-  /// Updates the `AndroidManifest.xml` file.
+  /// Updates the specified file.
   ///
-  /// Inserts the specified [content] before the [insertBefore] pattern.
+  /// Inserts the specified [content] after the [insertAfter] pattern or before the [insertBefore].
   /// [projectPath]: The root path of the Flutter project.
-  /// [content]: The XML content to insert.
-  /// [insertBefore]: The string pattern to insert before.
+  /// [file]: The specified file type to be updated e.g AndroidManifest.xml.
+  /// [content]: The content to insert.
   /// [logger]: A callback function to log messages.
-  Future<void> _updateAndroidManifest({
+  /// [insertAfter]: The string pattern to insert after.
+  /// [insertBefore]: The string pattern to insert before.
+  Future<bool> _updateFile({
     required String projectPath,
+    required FileType file,
     required String content,
-    required String insertBefore,
     required LogCallback logger,
+    String? insertAfter,
+    String? insertBefore,
   }) async {
+    assert(insertBefore != null || insertAfter != null);
+    final fullPath = _getPath(projectPath: projectPath, file: file);
+    final filename = fullPath.split(path.separator).last;
     try {
-      final manifestPath = path.join(
-        projectPath,
-        'android',
-        'app',
-        'src',
-        'main',
-        'AndroidManifest.xml',
-      );
-
-      final manifestFile = File(manifestPath);
-      if (!manifestFile.existsSync()) {
-        throw 'AndroidManifest.xml not found at $manifestPath';
+      final projectFile = File(fullPath);
+      if (!projectFile.existsSync()) {
+        throw '$filename not found at $fullPath';
       }
 
-      String manifestContent = manifestFile.readAsStringSync();
+      String projectContent = projectFile.readAsStringSync();
 
       // Check if content already exists
-      if (manifestContent.contains(content)) {
-        logger('Content already exists in AndroidManifest.xml', LogLevel.info);
-        return;
+      if (projectContent.contains(content)) {
+        logger('Content already exists in $filename', LogLevel.info);
+        return true;
       }
 
-      // Insert content
-      // Add indentation for better readability
-      manifestContent = manifestContent.replaceFirst(
-        insertBefore,
-        '$content\n    $insertBefore',
-      );
-
-      manifestFile.writeAsStringSync(manifestContent);
-
-      logger('Updated AndroidManifest.xml successfully', LogLevel.success);
-    } catch (e) {
-      logger('Failed to update AndroidManifest.xml: $e', LogLevel.error);
-      rethrow;
-    }
-  }
-
-  /// Updates the `Info.plist` file for iOS.
-  ///
-  /// Inserts the specified [content] before the [insertBefore] pattern.
-  /// [projectPath]: The root path of the Flutter project.
-  /// [content]: The XML content to insert.
-  /// [insertBefore]: The string pattern to insert before.
-  /// [logger]: A callback function to log messages.
-  Future<void> _updateInfoPlist({
-    required String projectPath,
-    required String content,
-    required String insertBefore,
-    required LogCallback logger,
-  }) async {
-    try {
-      final infoPlistPath = path.join(
-        projectPath,
-        'ios',
-        'Runner',
-        'Info.plist',
-      );
-
-      final infoPlistFile = File(infoPlistPath);
-      if (!infoPlistFile.existsSync()) {
-        throw 'Info.plist not found at $infoPlistPath';
-      }
-
-      String plistContent = infoPlistFile.readAsStringSync();
-
-      // Check if content already exists
-      if (plistContent.contains(content)) {
-        logger('Content already exists in Info.plist', LogLevel.info);
-        return;
-      }
-
-      // Insert content
-      // Add indentation for better readability
-      plistContent = plistContent.replaceFirst(
-        insertBefore,
-        '$content\n$insertBefore',
-      );
-
-      infoPlistFile.writeAsStringSync(plistContent);
-
-      logger('Updated Info.plist successfully', LogLevel.success);
-    } catch (e) {
-      logger('Failed to update Info.plist: $e', LogLevel.error);
-      rethrow;
-    }
-  }
-
-  /// Updates the `AppDelegate.swift` file for iOS.
-  ///
-  /// Adds [importStatements] and inserts [initCode] before the
-  /// `GeneratedPluginRegistrant.register` call.
-  /// [projectPath]: The root path of the Flutter project.
-  /// [importStatements]: The import statements to add.
-  /// [initCode]: The initialization code to insert.
-  /// [logger]: A callback function to log messages.
-  Future<void> _updateAppDelegate({
-    required String projectPath,
-    required String importStatements,
-    required String initCode,
-    required LogCallback logger,
-  }) async {
-    try {
-      final appDelegatePath = path.join(
-        projectPath,
-        'ios',
-        'Runner',
-        'AppDelegate.swift',
-      );
-
-      final appDelegateFile = File(appDelegatePath);
-      if (!appDelegateFile.existsSync()) {
-        throw 'AppDelegate.swift not found at $appDelegatePath';
-      }
-
-      String appDelegateContent = appDelegateFile.readAsStringSync();
-
-      // Check if import already exists before adding
-      if (!appDelegateContent.contains(importStatements)) {
-        // Add import statement after the existing import UIKit
-        appDelegateContent = appDelegateContent.replaceFirst(
-          'import UIKit',
-          'import UIKit\n$importStatements',
+      if (insertBefore != null) {
+        // Check if pattern exists
+        if (!projectContent.contains(insertBefore)) {
+          logger('$insertBefore not found in $filename', LogLevel.info);
+          return false;
+        }
+        projectContent = projectContent.replaceFirst(
+          insertBefore,
+          '$content\n$insertBefore',
+        );
+      } else {
+        // Check if pattern exists
+        if (!projectContent.contains(insertAfter!)) {
+          logger('$insertAfter not found in $filename', LogLevel.info);
+          return false;
+        }
+        projectContent = projectContent.replaceFirst(
+          insertAfter,
+          '$insertAfter\n$content',
         );
       }
 
-      // Check if initialization code already exists before adding
-      if (!appDelegateContent.contains(initCode)) {
-        // Add initialization code before GeneratedPluginRegistrant.register
-        appDelegateContent = appDelegateContent.replaceFirst(
-          'GeneratedPluginRegistrant.register(with: self)',
-          '$initCode\n        GeneratedPluginRegistrant.register(with: self)',
-        );
-      }
+      projectFile.writeAsStringSync(projectContent);
 
-      appDelegateFile.writeAsStringSync(appDelegateContent);
-
-      logger('Updated AppDelegate.swift successfully', LogLevel.success);
+      logger('Updated $filename successfully', LogLevel.success);
+      return true;
     } catch (e) {
-      logger('Failed to update AppDelegate.swift: $e', LogLevel.error);
+      logger('Failed to update $filename: $e', LogLevel.error);
       rethrow;
     }
   }
 
-  /// Updates the `build.gradle` file for Android.
+  /// Updates the specified file.
   ///
   /// Replaces the first occurrence of the [pattern] with the [replacement].
   /// [projectPath]: The root path of the Flutter project.
+  /// [file]: The specified file type to be updated e.g AndroidManifest.xml.
   /// [pattern]: The regex pattern to search for.
   /// [replacement]: The string to replace the pattern with.
   /// [logger]: A callback function to log messages.
-  Future<void> _updateBuildGradle({
+  Future<bool> _replacePattern({
     required String projectPath,
+    required FileType file,
     required String pattern,
     required String replacement,
     required LogCallback logger,
   }) async {
+    final fullPath = _getPath(projectPath: projectPath, file: file);
+    final filename = fullPath.split(path.separator).last;
     try {
-      final buildGradlePath = path.join(
-        projectPath,
-        'android',
-        'app',
-        'build.gradle',
-      );
-
-      final buildGradleFile = File(buildGradlePath);
-      if (!buildGradleFile.existsSync()) {
-        throw 'build.gradle not found at $buildGradlePath';
+      final projectFile = File(fullPath);
+      if (!projectFile.existsSync()) {
+        throw '$filename not found at $fullPath';
       }
 
-      String buildGradleContent = buildGradleFile.readAsStringSync();
+      String projectContent = projectFile.readAsStringSync();
 
       // Check if pattern exists
       final regex = RegExp(pattern);
-      if (!regex.hasMatch(buildGradleContent)) {
-        logger(
-          'Pattern "$pattern" not found in build.gradle',
-          LogLevel.warning,
-        );
-        return; // Pattern not found, nothing to replace
+      if (!regex.hasMatch(projectContent)) {
+        logger('Pattern "$pattern" not found in $filename', LogLevel.warning);
+        return false; // Pattern not found, nothing to replace
       }
 
       // Replace pattern
-      buildGradleContent = buildGradleContent.replaceFirst(regex, replacement);
+      projectContent = projectContent.replaceFirst(regex, replacement);
 
-      buildGradleFile.writeAsStringSync(buildGradleContent);
+      projectFile.writeAsStringSync(projectContent);
 
-      logger('Updated build.gradle successfully', LogLevel.success);
+      logger('Updated $filename successfully', LogLevel.success);
+      return true;
     } catch (e) {
-      logger('Failed to update build.gradle: $e', LogLevel.error);
+      logger('Failed to update $filename: $e', LogLevel.error);
+      rethrow;
+    }
+  }
+
+  Future<bool> _replaceOrUpdate({
+    required String projectPath,
+    required FileType file,
+    required String pattern,
+    required String content,
+    required String begin,
+    required String end,
+    required String insertBefore,
+    required LogCallback logger,
+  }) async {
+    final fullPath = _getPath(projectPath: projectPath, file: file);
+    final filename = fullPath.split(path.separator).last;
+    try {
+      final projectFile = File(fullPath);
+      if (!projectFile.existsSync()) {
+        throw '$filename not found at $fullPath';
+      }
+
+      String projectContent = projectFile.readAsStringSync();
+
+      // Check if pattern exists
+      final hasMatch = await _replacePattern(
+        projectPath: projectPath,
+        file: file,
+        pattern: pattern,
+        replacement: content,
+        logger: logger,
+      );
+      if (hasMatch) return true;
+
+      if (!projectContent.contains(begin)) {
+        return _updateFile(
+          projectPath: projectPath,
+          file: file,
+          content: '$begin\n$content\n$end\n\n',
+          logger: logger,
+          insertBefore: insertBefore,
+        );
+      }
+
+      projectContent = projectContent.replaceFirst(begin, '$begin\n$content');
+
+      projectFile.writeAsStringSync(projectContent);
+
+      logger('Updated $filename successfully', LogLevel.success);
+      return true;
+    } catch (e) {
+      logger('Failed to update $filename: $e', LogLevel.error);
       rethrow;
     }
   }
@@ -386,7 +371,7 @@ class IntegrationService {
   /// [filePath]: The path to the file to create, relative to the project root.
   /// [content]: The content to write to the file.
   /// [logger]: A callback function to log messages.
-  Future<void> _createFile({
+  Future<bool> _createFile({
     required String projectPath,
     required String filePath,
     required String content,
@@ -400,12 +385,20 @@ class IntegrationService {
       final directory = path.dirname(fullPath);
       await Directory(directory).create(recursive: true);
 
+      // Backup original file if it exists
+      if (file.existsSync()) {
+        final backupPath = '$fullPath.backup';
+        await file.copy(backupPath);
+        logger('Backed up original file to $backupPath', LogLevel.info);
+      }
+
       // Write content to file
       await file.writeAsString(content);
 
       logger('Created file at $filePath', LogLevel.success);
+      return true;
     } catch (e) {
-      logger('Failed to create file: $e', LogLevel.error);
+      logger('Failed to create file at $filePath: $e', LogLevel.error);
       rethrow;
     }
   }
@@ -416,16 +409,16 @@ class IntegrationService {
   /// [command]: The command to run (e.g., 'flutter').
   /// [args]: A list of arguments for the command.
   /// [logger]: A callback function to log messages.
-  Future<void> _runCommand({
+  Future<bool> _runCommand({
     required String projectPath,
     required String command,
     required List<dynamic> args,
     required LogCallback logger,
   }) async {
+    final List<String> arguments = args.map((arg) => arg.toString()).toList();
+    final cmd = '$command ${arguments.join(' ')}'.trim();
     try {
-      final List<String> arguments = args.map((arg) => arg.toString()).toList();
-
-      logger('Running command: $command ${arguments.join(' ')}', LogLevel.info);
+      logger('Running command: $cmd', LogLevel.info);
 
       final result = await Process.run(
         command,
@@ -435,96 +428,16 @@ class IntegrationService {
       );
 
       if (result.exitCode != 0) {
-        throw 'Command failed with exit code ${result.exitCode}:\n${result.stderr}';
+        logger('$cmd stdout:\n${result.stdout}', LogLevel.error);
+        logger('$cmd stderr:\n${result.stderr}', LogLevel.error);
+        throw '$cmd failed with exit code ${result.exitCode}:\n${result.stderr}';
       }
 
-      logger('Command result: \n${result.stdout}', LogLevel.info);
-      logger('Command completed successfully', LogLevel.success);
+      logger('$cmd result: \n${result.stdout}', LogLevel.info);
+      logger('$cmd completed successfully', LogLevel.success);
+      return true;
     } catch (e) {
-      logger('Failed to run command: $e', LogLevel.error);
-      rethrow;
-    }
-  }
-
-  /// Adds example code to the project.
-  ///
-  /// Parses the [exampleCode] string to identify file paths and content,
-  /// then creates or updates the corresponding files in the project.
-  /// Backs up existing files before overwriting.
-  /// [projectPath]: The root path of the Flutter project.
-  /// [exampleCode]: The string containing example code with file path markers.
-  /// [logger]: A callback function to log messages.
-  Future<void> _addExampleCode({
-    required String projectPath,
-    required String exampleCode,
-    required LogCallback logger,
-  }) async {
-    try {
-      // Regex to find file path comments and the following code block
-      final pattern = RegExp(
-        r'^\/\/ ((?:[\w.-]+\/)*[\w.-]+\.\w+)\n([\s\S]*?)(?=^\/\/ (?:[\w.-]+\/)*[\w.-]+\.\w+ |$)',
-      );
-      final matches = pattern.allMatches(exampleCode);
-
-      if (matches.isEmpty) {
-        logger('No files found in example code to add.', LogLevel.warning);
-        return;
-      }
-
-      for (final match in matches) {
-        final filePath = match.group(1)!.trim();
-        final content = match.group(2)!;
-
-        final fullPath = path.join(projectPath, filePath);
-
-        // Create directory if it doesn't exist
-        final directory = path.dirname(fullPath);
-        await Directory(directory).create(recursive: true);
-
-        // Backup original file if it exists
-        final file = File(fullPath);
-        if (file.existsSync()) {
-          final backupPath = '$fullPath.backup';
-          await file.copy(backupPath);
-          logger('Backed up original file to $backupPath', LogLevel.info);
-        }
-
-        // Write content to file
-        await file.writeAsString(content);
-
-        logger('Created/updated $filePath with example code', LogLevel.success);
-      }
-    } catch (e) {
-      logger('Failed to add example code: $e', LogLevel.error);
-      rethrow;
-    }
-  }
-
-  /// Runs the `flutter pub get` command in the project directory.
-  ///
-  /// [projectPath]: The root path of the Flutter project.
-  /// [logger]: A callback function to log messages.
-  Future<void> _runFlutterPubGet(String projectPath, LogCallback logger) async {
-    try {
-      logger('Running flutter pub get...', LogLevel.info);
-
-      final result = await Process.run(
-        'flutter',
-        ['pub', 'get'],
-        workingDirectory: projectPath,
-        runInShell: true,
-      ); // Use shell
-
-      if (result.exitCode != 0) {
-        logger('flutter pub get stdout:\n${result.stdout}', LogLevel.error);
-        logger('flutter pub get stderr:\n${result.stderr}', LogLevel.error);
-        throw 'flutter pub get failed with exit code ${result.exitCode}';
-      }
-
-      logger('flutter pub get result: \n${result.stdout}', LogLevel.info);
-      logger('flutter pub get completed successfully', LogLevel.success);
-    } catch (e) {
-      logger('Failed to run flutter pub get: $e', LogLevel.error);
+      logger('Failed to run $cmd: $e', LogLevel.error);
       rethrow;
     }
   }

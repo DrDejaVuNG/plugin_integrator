@@ -1,3 +1,20 @@
+/// Represents the different types of integration files that can be edited.
+enum FileType {
+  /// The AndroidManifest.xml file.
+  androidManifest,
+
+  /// The Info.plist file for iOS.
+  infoPlist,
+
+  /// The AppDelegate.swift file for iOS.
+  appDelegate,
+
+  /// The build.gradle file for Android.
+  buildGradle,
+  /// The build.gradle.kts file for Android.
+  buildGradleKts,
+}
+
 /// Represents the different statuses of the plugin integration process.
 enum IntegrationStatus {
   /// No integration process is currently active.
@@ -10,7 +27,7 @@ enum IntegrationStatus {
   success,
 
   /// The integration process failed.
-  failed
+  failed,
 }
 
 /// Represents the different levels of log entries.
@@ -25,7 +42,7 @@ enum LogLevel {
   error,
 
   /// Success messages indicating successful operations.
-  success
+  success,
 }
 
 /// Represents the different types of integration steps that can be performed.
@@ -33,19 +50,16 @@ enum StepType {
   /// Adds a dependency to the `pubspec.yaml` file.
   addDependency,
 
-  /// Updates the AndroidManifest.xml file.
-  updateManifest,
+  /// Replaces an identified pattern with the specified content in the file.
+  replacePattern,
 
-  /// Updates the Info.plist file for iOS.
-  updateInfoPlist,
+  /// Updates a file with the specified content.
+  updateFile,
 
-  /// Updates the AppDelegate.swift file for iOS.
-  updateAppDelegate,
+  /// Replace a pattern if available or update a file with the given content.
+  replaceOrUpdate,
 
-  /// Updates the build.gradle file for Android.
-  updateBuildGradle,
-
-  /// Creates a new file with specified content.
+  /// Creates a new file with the specified content.
   createFile,
 
   /// Runs a command-line process.

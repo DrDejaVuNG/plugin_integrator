@@ -10,9 +10,6 @@ class PluginConfig {
     required this.version,
     required this.steps,
     this.requiresApiKey = false,
-    this.androidConfig,
-    this.iosConfig,
-    this.exampleCode,
     this.dependencies = const [],
   });
 
@@ -37,15 +34,6 @@ class PluginConfig {
   /// Indicates if the plugin requires an API key.
   final bool requiresApiKey;
 
-  /// Platform-specific configuration for Android.
-  final PlatformConfig? androidConfig;
-
-  /// Platform-specific configuration for iOS.
-  final PlatformConfig? iosConfig;
-
-  /// Example code demonstrating how to use the plugin.
-  final String? exampleCode;
-
   /// Additional dependencies required by this plugin.
   final List<String> dependencies;
 
@@ -62,18 +50,6 @@ class PluginConfig {
               .map((step) => IntegrationStep.fromJson(step))
               .toList(),
       requiresApiKey: json['requiresApiKey'] ?? false,
-      androidConfig:
-          json['androidConfig'] != null
-              ? PlatformConfig.fromJson(json['androidConfig'])
-              : null,
-      iosConfig:
-          json['iosConfig'] != null
-              ? PlatformConfig.fromJson(json['iosConfig'])
-              : null,
-      exampleCode:
-          json['exampleCode'] != null
-              ? List<String>.from(json['exampleCode']).join('\n')
-              : null,
       dependencies:
           json['dependencies'] != null
               ? List<String>.from(json['dependencies'])
@@ -90,9 +66,6 @@ class PluginConfig {
     String? version,
     List<IntegrationStep>? steps,
     bool? requiresApiKey,
-    PlatformConfig? androidConfig,
-    PlatformConfig? iosConfig,
-    String? exampleCode,
     List<String>? dependencies,
   }) {
     return PluginConfig(
@@ -103,9 +76,6 @@ class PluginConfig {
       version: version ?? this.version,
       steps: steps ?? this.steps,
       requiresApiKey: requiresApiKey ?? this.requiresApiKey,
-      androidConfig: androidConfig ?? this.androidConfig,
-      iosConfig: iosConfig ?? this.iosConfig,
-      exampleCode: exampleCode ?? this.exampleCode,
       dependencies: dependencies ?? this.dependencies,
     );
   }
