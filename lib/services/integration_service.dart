@@ -52,7 +52,7 @@ class IntegrationService {
             projectPath: projectPath,
             file: step.getFileType,
             pattern: step.params['pattern'],
-            replacement: step.params['replacement'],
+            content: step.params['content'],
             logger: logger,
           );
           break;
@@ -65,6 +65,7 @@ class IntegrationService {
             content: step.params['content'],
             begin: step.params['begin'],
             end: step.params['end'],
+            insertAfter: step.params['insertAfter'],
             insertBefore: step.params['insertBefore'],
             logger: logger,
           );
@@ -269,17 +270,17 @@ class IntegrationService {
 
   /// Updates the specified file.
   ///
-  /// Replaces the first occurrence of the [pattern] with the [replacement].
+  /// Replaces the first occurrence of the [pattern] with the [content].
   /// [projectPath]: The root path of the Flutter project.
   /// [file]: The specified file type to be updated e.g AndroidManifest.xml.
   /// [pattern]: The regex pattern to search for.
-  /// [replacement]: The string to replace the pattern with.
+  /// [content]: The string to replace the pattern with.
   /// [logger]: A callback function to log messages.
   Future<bool> _replacePattern({
     required String projectPath,
     required FileType file,
     required String pattern,
-    required String replacement,
+    required String content,
     required LogCallback logger,
   }) async {
     final fullPath = _getPath(projectPath: projectPath, file: file);
@@ -300,7 +301,7 @@ class IntegrationService {
       }
 
       // Replace pattern
-      projectContent = projectContent.replaceFirst(regex, replacement);
+      projectContent = projectContent.replaceFirst(regex, content);
 
       projectFile.writeAsStringSync(projectContent);
 
@@ -319,7 +320,8 @@ class IntegrationService {
     required String content,
     required String begin,
     required String end,
-    required String insertBefore,
+    String? insertAfter,
+    String? insertBefore,
     required LogCallback logger,
   }) async {
     final fullPath = _getPath(projectPath: projectPath, file: file);
@@ -337,7 +339,7 @@ class IntegrationService {
         projectPath: projectPath,
         file: file,
         pattern: pattern,
-        replacement: content,
+        content: content,
         logger: logger,
       );
       if (hasMatch) return true;
@@ -348,6 +350,7 @@ class IntegrationService {
           file: file,
           content: '$begin\n$content\n$end\n\n',
           logger: logger,
+          insertAfter: insertAfter,
           insertBefore: insertBefore,
         );
       }

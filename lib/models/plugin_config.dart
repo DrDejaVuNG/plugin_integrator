@@ -45,11 +45,11 @@ class PluginConfig {
       pluginName: json['pluginName'],
       description: json['description'],
       version: json['version'],
+      requiresApiKey: json['requiresApiKey'] ?? false,
       steps:
           (json['steps'] as List)
               .map((step) => IntegrationStep.fromJson(step))
               .toList(),
-      requiresApiKey: json['requiresApiKey'] ?? false,
       dependencies:
           json['dependencies'] != null
               ? List<String>.from(json['dependencies'])

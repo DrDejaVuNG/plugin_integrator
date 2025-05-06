@@ -25,6 +25,7 @@ class IntegrationStep {
     return content.toString();
   }
 
+  /// Returns the file type of the integration step e.g androidManifest.
   FileType get getFileType {
     return FileType.values.firstWhere(
       (e) => e.toString() == 'FileType.${params['file']}',
@@ -34,13 +35,10 @@ class IntegrationStep {
   /// Creates an [IntegrationStep] instance from a JSON map.
   factory IntegrationStep.fromJson(Map<String, dynamic> json) {
     var content = json['params']['content'];
-    if (content != null) {
-      json['params']['content'] = _getContent(content);
-    }
+    if (content != null) json['params']['content'] = _getContent(content);
     return IntegrationStep(
       type: StepType.values.firstWhere(
         (e) => e.toString() == 'StepType.${json['type']}',
-        orElse: () => StepType.addDependency, // Default to addDependency
       ),
       description: json['description'],
       params: json['params'] ?? {}, // Handle potentially null params
