@@ -208,9 +208,9 @@ class IntegrationService {
   /// [projectPath]: The root path of the Flutter project.
   /// [file]: The specified file type to be updated e.g AndroidManifest.xml.
   /// [content]: The content to insert.
+  /// [insertAfter]: The string pattern that the content should be inserted after.
+  /// [insertBefore]: The string pattern that the content should be inserted before.
   /// [logger]: A callback function to log messages.
-  /// [insertAfter]: The string pattern to insert after.
-  /// [insertBefore]: The string pattern to insert before.
   Future<bool> _updateFile({
     required String projectPath,
     required FileType file,
@@ -244,7 +244,7 @@ class IntegrationService {
         }
         projectContent = projectContent.replaceFirst(
           insertBefore,
-          '$content\n$insertBefore',
+          '$content\n$insertBefore', // insert content before
         );
       } else {
         // Check if pattern exists
@@ -254,7 +254,7 @@ class IntegrationService {
         }
         projectContent = projectContent.replaceFirst(
           insertAfter,
-          '$insertAfter\n$content',
+          '$insertAfter\n$content', // insert content after
         );
       }
 
@@ -313,6 +313,50 @@ class IntegrationService {
     }
   }
 
+  /// Updates the specified file.
+  ///
+  /// Replaces the first occurrence of the [pattern] with the [content] or adds
+  /// the inline content if it's block exists or fully adds the complete code such as
+  /// the block as well as it's inline content to the file.
+  /// Example:
+  /// // inside build.gradle.kts
+  /// flutter {
+  ///     source '../..'
+  /// }
+  ///
+  /// dependencies {
+  ///     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+  /// }
+  ///
+  /// ---
+  ///
+  /// // inside json plugin config file
+  /// {
+  ///     "type": "replaceOrUpdate",
+  ///     "description": "Add coreLibraryDesugaring dependency in build.gradle.kts",
+  ///     "params": {
+  ///         "file": "buildGradleKts",
+  ///         "pattern": "coreLibraryDesugaring\\(\"com.android.tools:desugar_jdk_libs:[\\d.]+\"\\)",
+  ///         "content": "coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'",
+  ///         "begin": "dependencies {",
+  ///         "end": "}",
+  ///         "insertAfter": "flutter {\n    source '../..'\n}"
+  ///     }
+  /// },
+  /// Note: This would try to first update the "coreLibraryDesugaring" library line
+  /// if it exists otherwise it would try to add the line inside the dependencies block
+  /// if it exists and if not it would write the complete code i.e the dependencies block
+  /// as well as the coreLibraryDesugaring library line inside the block.
+  ///
+  /// [projectPath]: The root path of the Flutter project.
+  /// [file]: The specified file type to be updated e.g AndroidManifest.xml.
+  /// [pattern]: The regex pattern to search for.
+  /// [content]: The string to replace the pattern with or update the file with.
+  /// [begin]: The string pattern that comes before the content.
+  /// [end]: The string pattern that comes after the content.
+  /// [insertAfter]: The string pattern that the begin+content+end should be inserted after.
+  /// [insertBefore]: The string pattern that the begin+content+end should be inserted before.
+  /// [logger]: A callback function to log messages.
   Future<bool> _replaceOrUpdate({
     required String projectPath,
     required FileType file,
