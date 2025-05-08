@@ -50,7 +50,7 @@ class PluginService {
               .log("ERROR loading config $path: $e", LogLevel.error);
           ref
               .read(logNotifierProvider.notifier)
-              .log("Skipping failed config", LogLevel.info);
+              .log("Skipping failed config", LogLevel.warning);
         }
       }
       return configs;

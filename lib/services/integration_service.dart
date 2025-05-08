@@ -57,8 +57,8 @@ class IntegrationService {
           );
           break;
 
-        case StepType.replaceOrUpdate:
-          await _replaceOrUpdate(
+        case StepType.replaceOrScaffold:
+          await _replaceOrScaffold(
             projectPath: projectPath,
             file: step.getFileType,
             pattern: step.params['pattern'],
@@ -111,6 +111,12 @@ class IntegrationService {
         'AndroidManifest.xml',
       ),
       FileType.appDelegate => path.join(
+        projectPath,
+        'ios',
+        'Runner',
+        'AppDelegate.m',
+      ),
+      FileType.appDelegateSwift => path.join(
         projectPath,
         'ios',
         'Runner',
@@ -198,7 +204,8 @@ class IntegrationService {
       return true;
     } catch (e) {
       logger('Failed to add dependency: $e', LogLevel.error);
-      rethrow;
+      logger('Skipping: add dependency', LogLevel.warning);
+      return false;
     }
   }
 
@@ -264,7 +271,8 @@ class IntegrationService {
       return true;
     } catch (e) {
       logger('Failed to update $filename: $e', LogLevel.error);
-      rethrow;
+      logger('Skipping: update $filename', LogLevel.warning);
+      return false;
     }
   }
 
@@ -293,6 +301,12 @@ class IntegrationService {
 
       String projectContent = projectFile.readAsStringSync();
 
+      // Check if content already exists
+      if (projectContent.contains(content)) {
+        logger('Content already exists in $filename', LogLevel.info);
+        return true;
+      }
+
       // Check if pattern exists
       final regex = RegExp(pattern);
       if (!regex.hasMatch(projectContent)) {
@@ -309,7 +323,8 @@ class IntegrationService {
       return true;
     } catch (e) {
       logger('Failed to update $filename: $e', LogLevel.error);
-      rethrow;
+      logger('Skipping: update $filename', LogLevel.warning);
+      return false;
     }
   }
 
@@ -332,7 +347,7 @@ class IntegrationService {
   ///
   /// // inside json plugin config file
   /// {
-  ///     "type": "replaceOrUpdate",
+  ///     "type": "replaceOrScaffold",
   ///     "description": "Add coreLibraryDesugaring dependency in build.gradle.kts",
   ///     "params": {
   ///         "file": "buildGradleKts",
@@ -357,7 +372,7 @@ class IntegrationService {
   /// [insertAfter]: The string pattern that the begin+content+end should be inserted after.
   /// [insertBefore]: The string pattern that the begin+content+end should be inserted before.
   /// [logger]: A callback function to log messages.
-  Future<bool> _replaceOrUpdate({
+  Future<bool> _replaceOrScaffold({
     required String projectPath,
     required FileType file,
     required String pattern,
@@ -407,7 +422,8 @@ class IntegrationService {
       return true;
     } catch (e) {
       logger('Failed to update $filename: $e', LogLevel.error);
-      rethrow;
+      logger('Skipping: update $filename', LogLevel.warning);
+      return false;
     }
   }
 
@@ -446,7 +462,8 @@ class IntegrationService {
       return true;
     } catch (e) {
       logger('Failed to create file at $filePath: $e', LogLevel.error);
-      rethrow;
+      logger('Skipping: create file at $filePath', LogLevel.warning);
+      return false;
     }
   }
 
@@ -485,7 +502,8 @@ class IntegrationService {
       return true;
     } catch (e) {
       logger('Failed to run $cmd: $e', LogLevel.error);
-      rethrow;
+      logger('Skipping: run $cmd', LogLevel.warning);
+      return false;
     }
   }
 }

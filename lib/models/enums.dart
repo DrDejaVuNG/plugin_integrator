@@ -6,11 +6,15 @@ enum FileType {
   /// The Info.plist file for iOS.
   infoPlist,
 
-  /// The AppDelegate.swift file for iOS.
+  /// The AppDelegate.m file for iOS.
   appDelegate,
+
+  /// The AppDelegate.swift file for iOS.
+  appDelegateSwift,
 
   /// The build.gradle file for Android.
   buildGradle,
+
   /// The build.gradle.kts file for Android.
   buildGradleKts,
 }
@@ -57,7 +61,7 @@ enum StepType {
   updateFile,
 
   /// Replace a pattern if available or update a file with the given content.
-  replaceOrUpdate,
+  replaceOrScaffold,
 
   /// Creates a new file with the specified content.
   createFile,

@@ -29,18 +29,18 @@
         },
         {
             "type": "updateFile",
-            "description": "Import Google Maps in AppDelegate",
+            "description": "Import Google Maps in AppDelegate.swift",
             "params": {
-                "file": "appDelegate",
+                "file": "appDelegateSwift",
                 "content": "import GoogleMaps",
                 "insertAfter": "import UIKit"
             }
         },
         {
             "type": "updateFile",
-            "description": "Update AppDelegate with API key",
+            "description": "Update AppDelegate.swift with API key",
             "params": {
-                "file": "appDelegate",
+                "file": "appDelegateSwift",
                 "content": "GMSServices.provideAPIKey(\"{API_KEY}\")",
                 "insertBefore": "GeneratedPluginRegistrant.register(with: self)"
             }
